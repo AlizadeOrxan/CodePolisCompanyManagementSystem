@@ -29,33 +29,25 @@ public class WebHookController {
 
             String pusherName = root.path("pusher").path("name").asText();
 
-            String commit = root.path("commit").path("message").asText();
-
-            String header = root.path("header").asText();
-
             String branch = root.path("ref").asText();
 
-            String repo = root.path("repo").path("name").asText();
+            String commitMessage = root.path("head_commit").path("message").asText();
+
+            String repoName = root.path("repository").path("name").asText();
+
+            log.info("======= GITHUB UCHUN MELUMAAT =======");
 
 
-
-            log.info("Received GitHub webhook event: {}", eventType);
-
-            log.info("GITHUB MELUMATLARI ");
-            log.info("Pusher Name: {}", pusherName);
-            log.info("Commit: {}", commit);
-            log.info("Header: {}", header);
+            log.info("Repository: {}", repoName);
+            log.info("Istifadechi: {}", pusherName);
             log.info("Branch: {}", branch);
-            log.info("Repo: {}", repo);
+            log.info("Mesaj: {}", commitMessage);
+            log.info("===============================");
 
-
-
-
-        }catch (Exception e ){
-            log.warn("Parsing error: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("Parsing Xetasi: {}", e.getMessage());
         }
-
-        return ResponseEntity.ok("Webhook received successfully");
+        return ResponseEntity.ok("Webhook ugurla alindi !!");
 
     }
 
