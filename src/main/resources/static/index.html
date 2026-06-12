@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Rooms</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <style>
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family:Segoe UI;
+        }
+
+        body{
+            height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            background:#eef2f7;
+        }
+
+        .chat{
+            width:800px;
+            height:850px;
+            background:white;
+            border-radius:20px;
+            display:flex;
+            flex-direction:column;
+            overflow:hidden;
+            box-shadow:0 10px 40px rgba(0,0,0,0.15);
+        }
+
+        .header{
+            background:#2563eb;
+            color:white;
+            padding:18px;
+            display:flex;
+            justify-content:space-between;
+        }
+
+        .status{
+            background:red;
+            padding:6px 12px;
+            border-radius:20px;
+        }
+
+        .connected{
+            background:green;
+        }
+
+        .login{
+            display:flex;
+            gap:10px;
+            padding:12px;
+            border-bottom:1px solid #ddd;
+        }
+
+        .login input, .login select{
+            flex:1;
+            padding:10px;
+            border-radius:10px;
+            border:1px solid #ccc;
+        }
+
+        .login button{
+            background:#2563eb;
+            color:white;
+            border:none;
+            padding:10px 16px;
+            border-radius:10px;
+        }
+
+        .messages{
+            flex:1;
+            overflow-y:auto;
+            padding:15px;
+            background:#f8fafc;
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+        }
+
+        .msg{
+            max-width:70%;
+            padding:10px;
+            border-radius:12px;
+        }
+
+        .mine{
+            align-self:flex-end;
+            background:#2563eb;
+            color:white;
+        }
+
+        .other{
+            align-self:flex-start;
+            background:white;
+            border:1px solid #ddd;
+        }
+
+        .system{
+            text-align:center;
+            color:#16a34a;
+            font-weight:bold;
+        }
+
+        .input{
+            display:flex;
+            gap:10px;
+            padding:12px;
+            border-top:1px solid #ddd;
+        }
+
+        .input input{
+            flex:1;
+            padding:10px;
+            border-radius:10px;
+            border:1px solid #ccc;
+        }
+
+        .input button{
+            background:#16a34a;
+            color:white;
+            border:none;
+            padding:10px 16px;
+            border-radius:10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="chat">
+
+    <div class="header">
+        <div>💬 Chat Rooms</div>
+        <div id="status" class="status">Disconnected</div>
+    </div>
+
+    <div class="login">
+
+        <input id="username" placeholder="Ad">
+
+        <select id="room">
+            <option value="general">General</option>
+            <option value="java">Java</option>
+            <option value="spring">Spring</option>
+        </select>
+
+        <button onclick="connect()">Qoşul</button>
+
+    </div>
+
+    <div id="messages" class="messages"></div>
+
+    <div class="input">
+
+        <input id="messageInput" placeholder="Mesaj yaz..." onkeypress="handle(event)">
+
+        <button onclick="send()">Göndər</button>
+
+    </div>
+
+</div>
+
+<script>
+
+    let stompClient = null;
+    let username = "";
+    let room = "";
+
+    function connect(){
+
+        username = document.getElementById("username").value.trim();
+        room = document.getElementById("room").value;
+
+        if(!username){
+            alert("Ad daxil et");
+            return;
+        }
+
+        const socket = new SockJS("http://localhost:8089/ws");
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function(){
+
+            document.getElementById("status").innerText = "Connected";
+            document.getElementById("status").classList.add("connected");
+
+            stompClient.subscribe("/topic/messages", function(msg){
+                show(JSON.parse(msg.body));
+            });
+
+            stompClient.send("/app/join", {}, JSON.stringify({
+                sender: username,
+                room: room,
+                type: "JOIN"
+            }));
+
+        });
+    }
+
+    function send(){
+
+        const input = document.getElementById("messageInput");
+        const content = input.value.trim();
+
+        if(!content || !stompClient) return;
+
+        stompClient.send("/app/chat", {}, JSON.stringify({
+            sender: username,
+            content: content,
+            room: room,
+            type: "CHAT"
+        }));
+
+        input.value = "";
+    }
+
+    function show(msg){
+
+        const box = document.getElementById("messages");
+        const div = document.createElement("div");
+
+        if(msg.type === "JOIN"){
+            div.className = "system";
+            div.innerHTML = msg.content;
+        } else {
+
+            const mine = msg.sender === username;
+
+            div.className = mine ? "msg mine" : "msg other";
+
+            div.innerHTML = `
+            <div><b>${msg.sender}</b> | #${msg.room}</div>
+            <div>${msg.content}</div>
+            <div style="font-size:11px; opacity:0.6;">
+                ${msg.time ? new Date(msg.time).toLocaleTimeString() : ""}
+            </div>
+        `;
+        }
+
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function handle(e){
+        if(e.key === "Enter"){
+            send();
+        }
+    }
+
+</script>
+
+</body>
+</html>

@@ -57,7 +57,7 @@ public class EmployeeController {
 
         Page<EmployeeResponseDto> getAllDtos = employeeService.getAll(pageable);
 
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(getAllDtos);
+        return ResponseEntity.status(HttpStatus.OK).body(getAllDtos);
 
     }
 
